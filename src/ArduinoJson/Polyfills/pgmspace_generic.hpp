@@ -11,7 +11,11 @@ namespace ARDUINOJSON_NAMESPACE {
 
 template <typename T>
 typename enable_if<is_pointer<T>::value, T>::type pgm_read(const void* p) {
+#if  defined(ARDUINO_ARCH_SPRESENSE)
+  return reinterpret_cast<T>(p);
+#else
   return reinterpret_cast<T>(pgm_read_ptr(p));
+#endif
 }
 
 template <typename T>

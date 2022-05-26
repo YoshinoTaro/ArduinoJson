@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <ArduinoJson.h>
@@ -24,5 +24,22 @@ TEST_CASE("JsonDocument::size()") {
     doc["b"] = 2;
 
     REQUIRE(doc.size() == 2);
+  }
+
+  SECTION("linked array") {
+    StaticJsonDocument<128> doc2;
+    doc2.add(1);
+    doc2.add(2);
+    doc.as<JsonVariant>().link(doc2);
+
+    REQUIRE(doc.size() == 2);
+  }
+
+  SECTION("linked object") {
+    StaticJsonDocument<128> doc2;
+    doc2["hello"] = "world";
+    doc.as<JsonVariant>().link(doc2);
+
+    REQUIRE(doc.size() == 1);
   }
 }

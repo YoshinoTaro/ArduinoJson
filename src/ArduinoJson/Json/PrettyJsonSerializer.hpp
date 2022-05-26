@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -16,16 +16,16 @@ class PrettyJsonSerializer : public JsonSerializer<TWriter> {
   typedef JsonSerializer<TWriter> base;
 
  public:
-  PrettyJsonSerializer(TWriter &writer) : base(writer), _nesting(0) {}
+  PrettyJsonSerializer(TWriter writer) : base(writer), _nesting(0) {}
 
   size_t visitArray(const CollectionData &array) {
-    VariantSlot *slot = array.head();
+    const VariantSlot *slot = array.head();
     if (slot) {
       base::write("[\r\n");
       _nesting++;
       while (slot != 0) {
         indent();
-        slot->data()->accept(*this);
+        slot->data()->resolve()->accept(*this);
 
         slot = slot->next();
         base::write(slot ? ",\r\n" : "\r\n");
@@ -40,7 +40,7 @@ class PrettyJsonSerializer : public JsonSerializer<TWriter> {
   }
 
   size_t visitObject(const CollectionData &object) {
-    VariantSlot *slot = object.head();
+    const VariantSlot *slot = object.head();
     if (slot) {
       base::write("{\r\n");
       _nesting++;
@@ -48,7 +48,7 @@ class PrettyJsonSerializer : public JsonSerializer<TWriter> {
         indent();
         base::visitString(slot->key());
         base::write(": ");
-        slot->data()->accept(*this);
+        slot->data()->resolve()->accept(*this);
 
         slot = slot->next();
         base::write(slot ? ",\r\n" : "\r\n");

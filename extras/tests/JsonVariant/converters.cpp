@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <ArduinoJson.h>
@@ -13,22 +13,21 @@ struct Date {
   int year;
 };
 
-bool convertToJson(JsonVariant variant, const Date& date) {
-  variant["day"] = date.day;
-  variant["month"] = date.month;
-  variant["year"] = date.year;
-  return true;
+void convertToJson(const Date& src, JsonVariant dst) {
+  dst["day"] = src.day;
+  dst["month"] = src.month;
+  dst["year"] = src.year;
 }
 
-void convertFromJson(Date& date, JsonVariantConst variant) {
-  date.day = variant["day"];
-  date.month = variant["month"];
-  date.year = variant["year"];
+void convertFromJson(JsonVariantConst src, Date& dst) {
+  dst.day = src["day"];
+  dst.month = src["month"];
+  dst.year = src["year"];
 }
 
-bool canConvertFromJson(Date&, JsonVariantConst variant) {
-  return variant["day"].is<int>() && variant["month"].is<int>() &&
-         variant["year"].is<int>();
+bool canConvertFromJson(JsonVariantConst src, const Date&) {
+  return src["day"].is<int>() && src["month"].is<int>() &&
+         src["year"].is<int>();
 }
 }  // namespace
 
@@ -92,18 +91,17 @@ class Complex {
 namespace ARDUINOJSON_NAMESPACE {
 template <>
 struct Converter<Complex> {
-  static bool toJson(VariantRef variant, const Complex& value) {
-    variant["real"] = value.real();
-    variant["imag"] = value.imag();
-    return true;
+  static void toJson(const Complex& src, VariantRef dst) {
+    dst["real"] = src.real();
+    dst["imag"] = src.imag();
   }
 
-  static Complex fromJson(VariantConstRef variant) {
-    return Complex(variant["real"], variant["imag"]);
+  static Complex fromJson(VariantConstRef src) {
+    return Complex(src["real"], src["imag"]);
   }
 
-  static bool checkJson(VariantConstRef variant) {
-    return variant["real"].is<double>() && variant["imag"].is<double>();
+  static bool checkJson(VariantConstRef src) {
+    return src["real"].is<double>() && src["imag"].is<double>();
   }
 };
 }  // namespace ARDUINOJSON_NAMESPACE
@@ -141,4 +139,16 @@ TEST_CASE("Custom converter with specialization") {
     REQUIRE(doc["value"]["real"] == 19);
     REQUIRE(doc["value"]["imag"] == 3);
   }
+}
+
+TEST_CASE("ConverterNeedsWriteableRef") {
+  using namespace ARDUINOJSON_NAMESPACE;
+  CHECK(ConverterNeedsWriteableRef<int>::value == false);
+  CHECK(ConverterNeedsWriteableRef<float>::value == false);
+  CHECK(ConverterNeedsWriteableRef<JsonVariant>::value == true);
+  CHECK(ConverterNeedsWriteableRef<JsonVariantConst>::value == false);
+  CHECK(ConverterNeedsWriteableRef<JsonObject>::value == true);
+  CHECK(ConverterNeedsWriteableRef<JsonObjectConst>::value == false);
+  CHECK(ConverterNeedsWriteableRef<JsonArray>::value == true);
+  CHECK(ConverterNeedsWriteableRef<JsonArrayConst>::value == false);
 }

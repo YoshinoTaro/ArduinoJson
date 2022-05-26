@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <stdint.h>
@@ -47,6 +47,7 @@ TEST_CASE("parseNumber<int32_t>()") {
 
 TEST_CASE("parseNumber<uint8_t>()") {
   checkInteger<uint8_t>("0", 0);
+  checkInteger<uint8_t>("-0", 0);
   checkInteger<uint8_t>("255", 255);
   checkInteger<uint8_t>("+255", 255);
   checkInteger<uint8_t>("3.14", 3);

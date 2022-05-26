@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -8,7 +8,7 @@
 #include <ArduinoJson/Misc/Visitable.hpp>
 #include <ArduinoJson/Numbers/arithmeticCompare.hpp>
 #include <ArduinoJson/Polyfills/type_traits.hpp>
-#include <ArduinoJson/Strings/IsString.hpp>
+#include <ArduinoJson/Strings/StringAdapters.hpp>
 #include <ArduinoJson/Variant/Visitor.hpp>
 
 namespace ARDUINOJSON_NAMESPACE {
@@ -23,12 +23,12 @@ struct Comparer;
 template <typename T>
 struct Comparer<T, typename enable_if<IsString<T>::value>::type>
     : ComparerBase {
-  T rhs;
+  T rhs;  // TODO: store adapted string?
 
   explicit Comparer(T value) : rhs(value) {}
 
-  CompareResult visitString(const char *lhs) {
-    int i = adaptString(rhs).compare(lhs);
+  CompareResult visitString(const char *lhs, size_t n) {
+    int i = stringCompare(adaptString(rhs), adaptString(lhs, n));
     if (i < 0)
       return COMPARE_RESULT_GREATER;
     else if (i > 0)
@@ -57,16 +57,16 @@ struct Comparer<T, typename enable_if<is_integral<T>::value ||
     return arithmeticCompare(lhs, rhs);
   }
 
-  CompareResult visitNegativeInteger(UInt lhs) {
-    return arithmeticCompareNegateLeft(lhs, rhs);
+  CompareResult visitSignedInteger(Integer lhs) {
+    return arithmeticCompare(lhs, rhs);
   }
 
-  CompareResult visitPositiveInteger(UInt lhs) {
+  CompareResult visitUnsignedInteger(UInt lhs) {
     return arithmeticCompare(lhs, rhs);
   }
 
   CompareResult visitBoolean(bool lhs) {
-    return visitPositiveInteger(static_cast<UInt>(lhs));
+    return visitUnsignedInteger(static_cast<UInt>(lhs));
   }
 };
 
@@ -89,32 +89,10 @@ struct ArrayComparer : ComparerBase {
   explicit ArrayComparer(const CollectionData &rhs) : _rhs(&rhs) {}
 
   CompareResult visitArray(const CollectionData &lhs) {
-    if (lhs.equalsArray(*_rhs))
+    if (ArrayConstRef(&lhs) == ArrayConstRef(_rhs))
       return COMPARE_RESULT_EQUAL;
     else
       return COMPARE_RESULT_DIFFER;
-  }
-};
-
-struct NegativeIntegerComparer : ComparerBase {
-  UInt _rhs;
-
-  explicit NegativeIntegerComparer(UInt rhs) : _rhs(rhs) {}
-
-  CompareResult visitFloat(Float lhs) {
-    return arithmeticCompareNegateRight(lhs, _rhs);
-  }
-
-  CompareResult visitNegativeInteger(UInt lhs) {
-    return arithmeticCompare(_rhs, lhs);
-  }
-
-  CompareResult visitPositiveInteger(UInt) {
-    return COMPARE_RESULT_GREATER;
-  }
-
-  CompareResult visitBoolean(bool) {
-    return COMPARE_RESULT_GREATER;
   }
 };
 
@@ -124,7 +102,7 @@ struct ObjectComparer : ComparerBase {
   explicit ObjectComparer(const CollectionData &rhs) : _rhs(&rhs) {}
 
   CompareResult visitObject(const CollectionData &lhs) {
-    if (lhs.equalsObject(*_rhs))
+    if (ObjectConstRef(&lhs) == ObjectConstRef(_rhs))
       return COMPARE_RESULT_EQUAL;
     else
       return COMPARE_RESULT_DIFFER;
@@ -153,9 +131,9 @@ struct RawComparer : ComparerBase {
 template <typename T>
 struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
     : ComparerBase {
-  T rhs;
+  const T *rhs;  // TODO: should be a VariantConstRef
 
-  explicit Comparer(T value) : rhs(value) {}
+  explicit Comparer(const T &value) : rhs(&value) {}
 
   CompareResult visitArray(const CollectionData &lhs) {
     ArrayComparer comparer(lhs);
@@ -172,7 +150,7 @@ struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
     return accept(comparer);
   }
 
-  CompareResult visitString(const char *lhs) {
+  CompareResult visitString(const char *lhs, size_t) {
     Comparer<const char *> comparer(lhs);
     return accept(comparer);
   }
@@ -182,12 +160,12 @@ struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
     return accept(comparer);
   }
 
-  CompareResult visitNegativeInteger(UInt lhs) {
-    NegativeIntegerComparer comparer(lhs);
+  CompareResult visitSignedInteger(Integer lhs) {
+    Comparer<Integer> comparer(lhs);
     return accept(comparer);
   }
 
-  CompareResult visitPositiveInteger(UInt lhs) {
+  CompareResult visitUnsignedInteger(UInt lhs) {
     Comparer<UInt> comparer(lhs);
     return accept(comparer);
   }
@@ -205,7 +183,7 @@ struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
  private:
   template <typename TComparer>
   CompareResult accept(TComparer &comparer) {
-    CompareResult reversedResult = rhs.accept(comparer);
+    CompareResult reversedResult = rhs->accept(comparer);
     switch (reversedResult) {
       case COMPARE_RESULT_GREATER:
         return COMPARE_RESULT_LESS;
@@ -221,10 +199,6 @@ template <typename T1, typename T2>
 CompareResult compare(const T1 &lhs, const T2 &rhs) {
   Comparer<T2> comparer(rhs);
   return lhs.accept(comparer);
-}
-
-inline int variantCompare(const VariantData *a, const VariantData *b) {
-  return compare(VariantConstRef(a), VariantConstRef(b));
 }
 
 }  // namespace ARDUINOJSON_NAMESPACE

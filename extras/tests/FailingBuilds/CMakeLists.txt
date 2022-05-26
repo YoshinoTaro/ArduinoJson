@@ -1,5 +1,5 @@
 # ArduinoJson - https://arduinojson.org
-# Copyright Benoit Blanchon 2014-2021
+# Copyright © 2014-2022, Benoit BLANCHON
 # MIT License
 
 macro(build_should_fail target)
@@ -18,7 +18,8 @@ macro(build_should_fail target)
 	)
 	set_tests_properties(${target} 
 		PROPERTIES
-			WILL_FAIL TRUE
+			WILL_FAIL	TRUE
+			LABELS 		"WillFail;Catch"
 	)
 endmacro()
 

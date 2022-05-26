@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <ArduinoJson.h>
@@ -27,5 +27,13 @@ TEST_CASE("JsonVariant::nesting()") {
   SECTION("returns 1 for empty array") {
     var.to<JsonArray>();
     REQUIRE(var.nesting() == 1);
+  }
+
+  SECTION("returns depth of linked array") {
+    StaticJsonDocument<128> doc2;
+    doc2[0][0] = 42;
+    var.link(doc2);
+
+    CHECK(var.nesting() == 2);
   }
 }

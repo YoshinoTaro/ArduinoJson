@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -8,21 +8,24 @@
 #include <ArduinoJson/Misc/Visitable.hpp>
 #include <ArduinoJson/Serialization/measure.hpp>
 #include <ArduinoJson/Serialization/serialize.hpp>
+#include <ArduinoJson/Variant/Visitor.hpp>
 
 namespace ARDUINOJSON_NAMESPACE {
 
 template <typename TWriter>
 class JsonSerializer : public Visitor<size_t> {
  public:
+  static const bool producesText = true;
+
   JsonSerializer(TWriter writer) : _formatter(writer) {}
 
   FORCE_INLINE size_t visitArray(const CollectionData &array) {
     write('[');
 
-    VariantSlot *slot = array.head();
+    const VariantSlot *slot = array.head();
 
     while (slot != 0) {
-      slot->data()->accept(*this);
+      slot->data()->resolve()->accept(*this);
 
       slot = slot->next();
       if (slot == 0)
@@ -38,12 +41,12 @@ class JsonSerializer : public Visitor<size_t> {
   size_t visitObject(const CollectionData &object) {
     write('{');
 
-    VariantSlot *slot = object.head();
+    const VariantSlot *slot = object.head();
 
     while (slot != 0) {
       _formatter.writeString(slot->key());
       write(':');
-      slot->data()->accept(*this);
+      slot->data()->resolve()->accept(*this);
 
       slot = slot->next();
       if (slot == 0)
@@ -66,18 +69,23 @@ class JsonSerializer : public Visitor<size_t> {
     return bytesWritten();
   }
 
+  size_t visitString(const char *value, size_t n) {
+    _formatter.writeString(value, n);
+    return bytesWritten();
+  }
+
   size_t visitRawJson(const char *data, size_t n) {
     _formatter.writeRaw(data, n);
     return bytesWritten();
   }
 
-  size_t visitNegativeInteger(UInt value) {
-    _formatter.writeNegativeInteger(value);
+  size_t visitSignedInteger(Integer value) {
+    _formatter.writeInteger(value);
     return bytesWritten();
   }
 
-  size_t visitPositiveInteger(UInt value) {
-    _formatter.writePositiveInteger(value);
+  size_t visitUnsignedInteger(UInt value) {
+    _formatter.writeInteger(value);
     return bytesWritten();
   }
 

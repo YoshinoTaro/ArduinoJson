@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -23,8 +23,7 @@ template <typename TData>
 class ArrayRefBase {
  public:
   operator VariantConstRef() const {
-    const void* data = _data;  // prevent warning cast-align
-    return VariantConstRef(reinterpret_cast<const VariantData*>(data));
+    return VariantConstRef(getVariantData());
   }
 
   template <typename TVisitor>
@@ -45,7 +44,7 @@ class ArrayRefBase {
   }
 
   FORCE_INLINE size_t nesting() const {
-    return _data ? _data->nesting() : 0;
+    return variantNesting(getVariantData());
   }
 
   FORCE_INLINE size_t size() const {
@@ -53,6 +52,11 @@ class ArrayRefBase {
   }
 
  protected:
+  const VariantData* getVariantData() const {
+    const void* data = _data;  // prevent warning cast-align
+    return reinterpret_cast<const VariantData*>(data);
+  }
+
   ArrayRefBase(TData* data) : _data(data) {}
   TData* _data;
 };
@@ -79,14 +83,33 @@ class ArrayConstRef : public ArrayRefBase<const CollectionData>,
   FORCE_INLINE ArrayConstRef(const CollectionData* data) : base_type(data) {}
 
   FORCE_INLINE bool operator==(ArrayConstRef rhs) const {
-    return arrayEquals(_data, rhs._data);
+    if (_data == rhs._data)
+      return true;
+    if (!_data || !rhs._data)
+      return false;
+
+    iterator it1 = begin();
+    iterator it2 = rhs.begin();
+
+    for (;;) {
+      bool end1 = it1 == end();
+      bool end2 = it2 == rhs.end();
+      if (end1 && end2)
+        return true;
+      if (end1 || end2)
+        return false;
+      if (*it1 != *it2)
+        return false;
+      ++it1;
+      ++it2;
+    }
   }
 
   FORCE_INLINE VariantConstRef operator[](size_t index) const {
-    return getElement(index);
+    return getElementConst(index);
   }
 
-  FORCE_INLINE VariantConstRef getElement(size_t index) const {
+  FORCE_INLINE VariantConstRef getElementConst(size_t index) const {
     return VariantConstRef(_data ? _data->getElement(index) : 0);
   }
 };
@@ -134,7 +157,7 @@ class ArrayRef : public ArrayRefBase<CollectionData>,
   }
 
   FORCE_INLINE bool operator==(ArrayRef rhs) const {
-    return arrayEquals(_data, rhs._data);
+    return ArrayConstRef(_data) == ArrayConstRef(rhs._data);
   }
 
   // Internal use
@@ -145,6 +168,11 @@ class ArrayRef : public ArrayRefBase<CollectionData>,
   // Gets the value at the specified index.
   FORCE_INLINE VariantRef getElement(size_t index) const {
     return VariantRef(_pool, _data ? _data->getElement(index) : 0);
+  }
+
+  // Gets the value at the specified index.
+  FORCE_INLINE VariantConstRef getElementConst(size_t index) const {
+    return VariantConstRef(_data ? _data->getElement(index) : 0);
   }
 
   // Removes element at specified position.
@@ -161,44 +189,52 @@ class ArrayRef : public ArrayRefBase<CollectionData>,
     _data->removeElement(index);
   }
 
+  void clear() const {
+    if (!_data)
+      return;
+    _data->clear();
+  }
+
  private:
   MemoryPool* _pool;
 };
 
 template <>
 struct Converter<ArrayConstRef> {
-  static bool toJson(VariantRef variant, VariantConstRef value) {
-    return variantCopyFrom(getData(variant), getData(value), getPool(variant));
+  static void toJson(VariantConstRef src, VariantRef dst) {
+    variantCopyFrom(getData(dst), getData(src), getPool(dst));
   }
 
-  static ArrayConstRef fromJson(VariantConstRef variant) {
-    return ArrayConstRef(variantAsArray(getData(variant)));
+  static ArrayConstRef fromJson(VariantConstRef src) {
+    return ArrayConstRef(variantAsArray(getData(src)));
   }
 
-  static bool checkJson(VariantConstRef variant) {
-    const VariantData* data = getData(variant);
-    return data && data->isArray();
+  static bool checkJson(VariantConstRef src) {
+    const VariantData* data = getData(src);
+    return data && data->resolve()->isArray();
   }
 };
 
 template <>
 struct Converter<ArrayRef> {
-  static bool toJson(VariantRef variant, VariantConstRef value) {
-    return variantCopyFrom(getData(variant), getData(value), getPool(variant));
+  static void toJson(VariantConstRef src, VariantRef dst) {
+    variantCopyFrom(getData(dst), getData(src), getPool(dst));
   }
 
-  static ArrayRef fromJson(VariantRef variant) {
-    VariantData* data = getData(variant);
-    MemoryPool* pool = getPool(variant);
+  static ArrayRef fromJson(VariantRef src) {
+    VariantData* data = getData(src);
+    MemoryPool* pool = getPool(src);
     return ArrayRef(pool, data != 0 ? data->asArray() : 0);
   }
+
+  static InvalidConversion<VariantConstRef, ArrayRef> fromJson(VariantConstRef);
 
   static bool checkJson(VariantConstRef) {
     return false;
   }
 
-  static bool checkJson(VariantRef variant) {
-    VariantData* data = getData(variant);
+  static bool checkJson(VariantRef src) {
+    VariantData* data = getData(src);
     return data && data->isArray();
   }
 };

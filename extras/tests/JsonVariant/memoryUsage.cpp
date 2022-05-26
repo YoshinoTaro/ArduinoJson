@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <ArduinoJson.h>
@@ -30,10 +30,20 @@ TEST_CASE("JsonVariant::memoryUsage()") {
   SECTION("returns size of owned string") {
     var.set(std::string("hello"));
     REQUIRE(var.memoryUsage() == 6);
+    REQUIRE(var.memoryUsage() == doc.memoryUsage());
   }
 
   SECTION("returns size of owned raw") {
     var.set(serialized(std::string("hello")));
-    REQUIRE(var.memoryUsage() == 5);
+    REQUIRE(var.memoryUsage() == 6);
+    REQUIRE(var.memoryUsage() == doc.memoryUsage());
+  }
+
+  SECTION("ignore size of linked document") {
+    StaticJsonDocument<128> doc2;
+    doc2["hello"] = "world";
+    var.link(doc2);
+    CHECK(var.memoryUsage() == 0);
+    CHECK(var.memoryUsage() == doc.memoryUsage());
   }
 }

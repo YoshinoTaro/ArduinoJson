@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -17,14 +17,6 @@ typename TVisitor::result_type objectAccept(const CollectionData *obj,
     return visitor.visitNull();
 }
 
-inline bool objectEquals(const CollectionData *lhs, const CollectionData *rhs) {
-  if (lhs == rhs)
-    return true;
-  if (!lhs || !rhs)
-    return false;
-  return lhs->equalsObject(*rhs);
-}
-
 template <typename TAdaptedString>
 inline VariantData *objectGetMember(const CollectionData *obj,
                                     TAdaptedString key) {
@@ -40,12 +32,13 @@ void objectRemove(CollectionData *obj, TAdaptedString key) {
   obj->removeMember(key);
 }
 
-template <typename TAdaptedString>
+template <typename TAdaptedString, typename TStoragePolicy>
 inline VariantData *objectGetOrAddMember(CollectionData *obj,
-                                         TAdaptedString key, MemoryPool *pool) {
+                                         TAdaptedString key, MemoryPool *pool,
+                                         TStoragePolicy storage_policy) {
   if (!obj)
     return 0;
 
-  return obj->getOrAddMember(key, pool);
+  return obj->getOrAddMember(key, pool, storage_policy);
 }
 }  // namespace ARDUINOJSON_NAMESPACE

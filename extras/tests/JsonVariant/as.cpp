@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <ArduinoJson.h>
@@ -24,6 +24,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(0.0f == variant.as<float>());
     REQUIRE(0 == variant.as<const char*>());
     REQUIRE("null" == variant.as<std::string>());
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(4.2)") {
@@ -34,6 +35,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<std::string>() == "4.2");
     REQUIRE(variant.as<long>() == 4L);
     REQUIRE(variant.as<unsigned>() == 4U);
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(0.0)") {
@@ -41,6 +43,7 @@ TEST_CASE("JsonVariant::as()") {
 
     REQUIRE(variant.as<bool>() == false);
     REQUIRE(variant.as<long>() == 0L);
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(false)") {
@@ -50,6 +53,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<double>() == 0.0);
     REQUIRE(variant.as<long>() == 0L);
     REQUIRE(variant.as<std::string>() == "false");
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(true)") {
@@ -59,6 +63,18 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<double>() == 1.0);
     REQUIRE(variant.as<long>() == 1L);
     REQUIRE(variant.as<std::string>() == "true");
+    REQUIRE(variant.as<JsonString>().isNull());
+  }
+
+  SECTION("set(42)") {
+    variant.set(42);
+
+    REQUIRE(variant.as<bool>() == true);
+    REQUIRE(variant.as<double>() == 42.0);
+    REQUIRE(variant.as<int>() == 42);
+    REQUIRE(variant.as<unsigned int>() == 42U);  // issue #1601
+    REQUIRE(variant.as<std::string>() == "42");
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(42L)") {
@@ -67,6 +83,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<bool>() == true);
     REQUIRE(variant.as<double>() == 42.0);
     REQUIRE(variant.as<std::string>() == "42");
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(-42L)") {
@@ -74,6 +91,16 @@ TEST_CASE("JsonVariant::as()") {
 
     REQUIRE(variant.as<double>() == -42.0);
     REQUIRE(variant.as<std::string>() == "-42");
+    REQUIRE(variant.as<JsonString>().isNull());
+  }
+
+  SECTION("set(42UL)") {
+    variant.set(42UL);
+
+    REQUIRE(variant.as<bool>() == true);
+    REQUIRE(variant.as<double>() == 42.0);
+    REQUIRE(variant.as<std::string>() == "42");
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(0L)") {
@@ -81,6 +108,17 @@ TEST_CASE("JsonVariant::as()") {
 
     REQUIRE(variant.as<bool>() == false);
     REQUIRE(variant.as<double>() == 0.0);
+    REQUIRE(variant.as<std::string>() == "0");
+    REQUIRE(variant.as<JsonString>().isNull());
+  }
+
+  SECTION("set(0UL)") {
+    variant.set(0UL);
+
+    REQUIRE(variant.as<bool>() == false);
+    REQUIRE(variant.as<double>() == 0.0);
+    REQUIRE(variant.as<std::string>() == "0");
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(null)") {
@@ -90,12 +128,15 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<double>() == 0.0);
     REQUIRE(variant.as<long>() == 0L);
     REQUIRE(variant.as<std::string>() == "null");
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(\"42\")") {
     variant.set("42");
 
     REQUIRE(variant.as<long>() == 42L);
+    REQUIRE(variant.as<JsonString>() == "42");
+    REQUIRE(variant.as<JsonString>().isLinked() == true);
   }
 
   SECTION("set(\"hello\")") {
@@ -106,6 +147,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<const char*>() == std::string("hello"));
     REQUIRE(variant.as<const char*>() == std::string("hello"));
     REQUIRE(variant.as<std::string>() == std::string("hello"));
+    REQUIRE(variant.as<JsonString>() == "hello");
   }
 
   SECTION("set(std::string(\"4.2\"))") {
@@ -116,6 +158,8 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<double>() == 4.2);
     REQUIRE(variant.as<const char*>() == std::string("4.2"));
     REQUIRE(variant.as<std::string>() == std::string("4.2"));
+    REQUIRE(variant.as<JsonString>() == "4.2");
+    REQUIRE(variant.as<JsonString>().isLinked() == false);
   }
 
   SECTION("set(\"true\")") {
@@ -123,6 +167,7 @@ TEST_CASE("JsonVariant::as()") {
 
     REQUIRE(variant.as<bool>() == true);
     REQUIRE(variant.as<int>() == 0);
+    REQUIRE(variant.as<JsonString>() == "true");
   }
 
   SECTION("set(-1e300)") {
@@ -132,6 +177,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<double>() == -1e300);
     REQUIRE(variant.as<float>() < 0);
     REQUIRE(my::isinf(variant.as<float>()));
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(1e300)") {
@@ -141,6 +187,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<double>() == 1e300);
     REQUIRE(variant.as<float>() > 0);
     REQUIRE(my::isinf(variant.as<float>()));
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("set(1e-300)") {
@@ -149,6 +196,7 @@ TEST_CASE("JsonVariant::as()") {
     REQUIRE(variant.as<bool>() == true);
     REQUIRE(variant.as<double>() == 1e-300);
     REQUIRE(variant.as<float>() == 0);
+    REQUIRE(variant.as<JsonString>().isNull());
   }
 
   SECTION("to<JsonObject>()") {
@@ -218,5 +266,98 @@ TEST_CASE("JsonVariant::as()") {
     variant.set(1);
 
     REQUIRE(variant.as<MY_ENUM>() == ONE);
+  }
+
+  SECTION("linked object") {
+    StaticJsonDocument<128> doc2;
+    doc2["hello"] = "world";
+    variant.link(doc2);
+
+    SECTION("as<std::string>()") {
+      CHECK(variant.as<std::string>() == "{\"hello\":\"world\"}");
+    }
+
+    SECTION("as<JsonArray>()") {
+      JsonArray a = variant.as<JsonArray>();
+      CHECK(a.isNull() == true);
+    }
+
+    SECTION("as<JsonObject>()") {
+      JsonObject o = variant.as<JsonObject>();
+      CHECK(o.isNull() == true);
+    }
+
+    SECTION("as<JsonObjectConst>()") {
+      JsonObjectConst o = variant.as<JsonObjectConst>();
+      CHECK(o.isNull() == false);
+      CHECK(o.size() == 1);
+      CHECK(o["hello"] == "world");
+    }
+  }
+
+  SECTION("linked array") {
+    StaticJsonDocument<128> doc2;
+    doc2.add("hello");
+    doc2.add("world");
+    variant.link(doc2);
+
+    SECTION("as<std::string>()") {
+      CHECK(variant.as<std::string>() == "[\"hello\",\"world\"]");
+    }
+
+    SECTION("as<JsonArray>()") {
+      JsonArray a = variant.as<JsonArray>();
+      CHECK(a.isNull() == true);
+    }
+
+    SECTION("as<JsonArrayConst>()") {
+      JsonArrayConst a = variant.as<JsonArrayConst>();
+      CHECK(a.isNull() == false);
+      CHECK(a.size() == 2);
+      CHECK(a[0] == "hello");
+      CHECK(a[1] == "world");
+    }
+
+    SECTION("as<JsonObject>()") {
+      JsonObject o = variant.as<JsonObject>();
+      CHECK(o.isNull() == true);
+    }
+  }
+
+  SECTION("linked int") {
+    StaticJsonDocument<128> doc2;
+    doc2.set(42);
+    variant.link(doc2);
+
+    CHECK(variant.as<int>() == 42);
+    CHECK(variant.as<double>() == 42.0);
+  }
+
+  SECTION("linked double") {
+    StaticJsonDocument<128> doc2;
+    doc2.set(42.0);
+    variant.link(doc2);
+
+    CHECK(variant.as<int>() == 42);
+    CHECK(variant.as<double>() == 42.0);
+  }
+
+  SECTION("linked string") {
+    StaticJsonDocument<128> doc2;
+    doc2.set("hello");
+    variant.link(doc2);
+
+    CHECK(variant.as<std::string>() == "hello");
+  }
+
+  SECTION("linked bool") {
+    StaticJsonDocument<128> doc2;
+    variant.link(doc2);
+
+    doc2.set(true);
+    CHECK(variant.as<bool>() == true);
+
+    doc2.set(false);
+    CHECK(variant.as<bool>() == false);
   }
 }

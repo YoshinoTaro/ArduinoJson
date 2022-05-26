@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -36,18 +36,17 @@ class CollectionData {
 
   void removeElement(size_t index);
 
-  bool equalsArray(const CollectionData &other) const;
-
   // Object only
 
-  template <typename TAdaptedString>
-  VariantData *addMember(TAdaptedString key, MemoryPool *pool);
+  template <typename TAdaptedString, typename TStoragePolicy>
+  VariantData *addMember(TAdaptedString key, MemoryPool *pool, TStoragePolicy);
 
   template <typename TAdaptedString>
   VariantData *getMember(TAdaptedString key) const;
 
-  template <typename TAdaptedString>
-  VariantData *getOrAddMember(TAdaptedString key, MemoryPool *pool);
+  template <typename TAdaptedString, typename TStoragePolicy>
+  VariantData *getOrAddMember(TAdaptedString key, MemoryPool *pool,
+                              TStoragePolicy);
 
   template <typename TAdaptedString>
   void removeMember(TAdaptedString key) {
@@ -57,13 +56,10 @@ class CollectionData {
   template <typename TAdaptedString>
   bool containsKey(const TAdaptedString &key) const;
 
-  bool equalsObject(const CollectionData &other) const;
-
   // Generic
 
   void clear();
   size_t memoryUsage() const;
-  size_t nesting() const;
   size_t size() const;
 
   VariantSlot *addSlot(MemoryPool *);

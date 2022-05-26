@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #include <ArduinoJson.h>
@@ -25,6 +25,20 @@ TEST_CASE("Compare JsonVariant with value") {
 
   SECTION("42 vs 42") {
     a.set(42);
+    int b = 42;
+
+    CHECK(a == b);
+    CHECK(a <= b);
+    CHECK(a >= b);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a < b);
+    CHECK_FALSE(a > b);
+  }
+
+  SECTION("linked 42 vs 42") {
+    StaticJsonDocument<128> doc2;
+    doc2.set(42);
+    a.link(doc2);
     int b = 42;
 
     CHECK(a == b);
@@ -158,6 +172,18 @@ TEST_CASE("Compare JsonVariant with JsonVariant") {
     CHECK_FALSE(a > b);
   }
 
+  SECTION("42 vs 42U") {
+    a.set(42);
+    b.set(42U);
+
+    CHECK(a == b);
+    CHECK(a <= b);
+    CHECK(a >= b);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a < b);
+    CHECK_FALSE(a > b);
+  }
+
   SECTION("42 vs 42.0") {
     a.set(42);
     b.set(42.0);
@@ -230,6 +256,30 @@ TEST_CASE("Compare JsonVariant with JsonVariant") {
     CHECK_FALSE(a == b);
   }
 
+  SECTION("42U vs 42U") {
+    a.set(42U);
+    b.set(42U);
+
+    CHECK(a == b);
+    CHECK(a <= b);
+    CHECK(a >= b);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a < b);
+    CHECK_FALSE(a > b);
+  }
+
+  SECTION("42U vs 42") {
+    a.set(42U);
+    b.set(42);
+
+    CHECK(a == b);
+    CHECK(a <= b);
+    CHECK(a >= b);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a < b);
+    CHECK_FALSE(a > b);
+  }
+
   SECTION("[1] vs [1]") {
     a.add(1);
     b.add(1);
@@ -276,5 +326,20 @@ TEST_CASE("Compare JsonVariant with JsonVariant") {
     CHECK_FALSE(a == b);
     CHECK_FALSE(a > b);
     CHECK_FALSE(a >= b);
+  }
+
+  SECTION("linked 42 vs link 42") {
+    StaticJsonDocument<128> doc2, doc3;
+    doc2.set(42);
+    doc3.set(42);
+    a.link(doc2);
+    b.link(doc3);
+
+    CHECK(a == b);
+    CHECK(a <= b);
+    CHECK(a >= b);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a < b);
+    CHECK_FALSE(a > b);
   }
 }

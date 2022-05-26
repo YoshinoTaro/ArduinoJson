@@ -1,29 +1,22 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
 
 #include <ArduinoJson/Polyfills/attributes.hpp>
+#include <ArduinoJson/Strings/StoragePolicy.hpp>
 #include <ArduinoJson/Variant/VariantData.hpp>
+#include <ArduinoJson/Variant/Visitor.hpp>
 
 namespace ARDUINOJSON_NAMESPACE {
 
-template <typename TVisitor>
-inline typename TVisitor::result_type variantAccept(const VariantData *var,
-                                                    TVisitor &visitor) {
-  if (var != 0)
-    return var->accept(visitor);
-  else
-    return visitor.visitNull();
-}
-
 inline const CollectionData *variantAsArray(const VariantData *var) {
-  return var != 0 ? var->asArray() : 0;
+  return var != 0 ? var->resolve()->asArray() : 0;
 }
 
 inline const CollectionData *variantAsObject(const VariantData *var) {
-  return var != 0 ? var->asObject() : 0;
+  return var != 0 ? var->resolve()->asObject() : 0;
 }
 
 inline CollectionData *variantAsObject(VariantData *var) {
@@ -41,24 +34,20 @@ inline bool variantCopyFrom(VariantData *dst, const VariantData *src,
   return dst->copyFrom(*src, pool);
 }
 
-inline int variantCompare(const VariantData *a, const VariantData *b);
-
 inline void variantSetNull(VariantData *var) {
   if (!var)
     return;
   var->setNull();
 }
 
-template <typename TAdaptedString>
+template <typename TAdaptedString, typename TStoragePolicy>
 inline bool variantSetString(VariantData *var, TAdaptedString value,
-                             MemoryPool *pool) {
-  if (!var)
-    return false;
-  return var->setString(value, pool);
+                             MemoryPool *pool, TStoragePolicy storage_policy) {
+  return var != 0 ? var->storeString(value, pool, storage_policy) : 0;
 }
 
 inline size_t variantSize(const VariantData *var) {
-  return var != 0 ? var->size() : 0;
+  return var != 0 ? var->resolve()->size() : 0;
 }
 
 inline CollectionData *variantToArray(VariantData *var) {
@@ -87,18 +76,41 @@ inline NO_INLINE VariantData *variantGetOrAddElement(VariantData *var,
 template <typename TChar>
 NO_INLINE VariantData *variantGetOrAddMember(VariantData *var, TChar *key,
                                              MemoryPool *pool) {
-  return var != 0 ? var->getOrAddMember(adaptString(key), pool) : 0;
+  if (!var)
+    return 0;
+  return var->getOrAddMember(adaptString(key), pool,
+                             getStringStoragePolicy(key));
 }
 
 template <typename TString>
 NO_INLINE VariantData *variantGetOrAddMember(VariantData *var,
                                              const TString &key,
                                              MemoryPool *pool) {
-  return var != 0 ? var->getOrAddMember(adaptString(key), pool) : 0;
+  if (!var)
+    return 0;
+  return var->getOrAddMember(adaptString(key), pool,
+                             getStringStoragePolicy(key));
 }
 
 inline bool variantIsNull(const VariantData *var) {
-  return var == 0 || var->isNull();
+  return var == 0 || var->resolve()->isNull();
+}
+
+inline size_t variantNesting(const VariantData *var) {
+  if (!var)
+    return 0;
+
+  const CollectionData *collection = var->resolve()->asCollection();
+  if (!collection)
+    return 0;
+
+  size_t maxChildNesting = 0;
+  for (const VariantSlot *s = collection->head(); s; s = s->next()) {
+    size_t childNesting = variantNesting(s->data());
+    if (childNesting > maxChildNesting)
+      maxChildNesting = childNesting;
+  }
+  return maxChildNesting + 1;
 }
 
 }  // namespace ARDUINOJSON_NAMESPACE

@@ -1,5 +1,5 @@
 // ArduinoJson - https://arduinojson.org
-// Copyright Benoit Blanchon 2014-2021
+// Copyright © 2014-2022, Benoit BLANCHON
 // MIT License
 
 #pragma once
@@ -26,7 +26,7 @@ struct Visitor {
     return TResult();
   }
 
-  TResult visitNegativeInteger(UInt) {
+  TResult visitSignedInteger(Integer) {
     return TResult();
   }
 
@@ -38,7 +38,7 @@ struct Visitor {
     return TResult();
   }
 
-  TResult visitPositiveInteger(UInt) {
+  TResult visitUnsignedInteger(UInt) {
     return TResult();
   }
 
@@ -46,7 +46,7 @@ struct Visitor {
     return TResult();
   }
 
-  TResult visitString(const char *) {
+  TResult visitString(const char *, size_t) {
     return TResult();
   }
 };
